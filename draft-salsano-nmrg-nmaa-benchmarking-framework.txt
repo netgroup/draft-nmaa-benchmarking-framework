@@ -2,12 +2,12 @@
 
 
 
-Network Management Research Group                        S. Salsano, Ed.
+Network Management                                       S. Salsano, Ed.
 Internet-Draft                     University of Rome Tor Vergata / CNIT
 Intended status: Informational                             W. Henderickx
-Expires: 3 May 2027                                                Nokia
+Expires: 3 May 2027                              Nokia (to be confirmed)
                                                               A. Kassler
-                                      Deggendorf Institute of Technology
+                    Deggendorf Institute of Technology (to be confirmed)
                                                          30 October 2026
 
 
@@ -47,9 +47,9 @@ About This Document
    for this document may be found at https://datatracker.ietf.org/doc/
    draft-salsano-nmrg-nmaa-benchmarking-framework/.
 
-   Discussion of this document takes place on the NMRG Research Group
-   mailing list (mailto:nmrg@irtf.org), which is archived at
-   https://mailarchive.ietf.org/arch/browse/nmrg/.  Subscribe at
+   Discussion of this document takes place on the Network Management
+   Research Group mailing list (mailto:nmrg@irtf.org), which is archived
+   at https://mailarchive.ietf.org/arch/browse/nmrg.  Subscribe at
    https://www.ietf.org/mailman/listinfo/nmrg/.
 
    Source for this draft and an issue tracker can be found at
@@ -750,9 +750,9 @@ Table of Contents
    [METHODOLOGY]
               Salsano, S., "Benchmarking Methodology for Network
               Management AI Agents on Brownfield Networks", Work in
-              Progress, Internet-Draft, draft-salsano-bmwg-nmaa-
+              Progress, Internet-Draft, draft-salsano-bpm-nmaa-
               benchmarking-methodology-latest,
-              <https://datatracker.ietf.org/doc/html/draft-salsano-bmwg-
+              <https://datatracker.ietf.org/doc/html/draft-salsano-bpm-
               nmaa-benchmarking-methodology-latest>.
 
    [NETCONFEVAL]
@@ -846,9 +846,9 @@ Authors' Addresses
 
 
    Wim Henderickx
-   Nokia
+   Nokia (to be confirmed)
    Email: wim.henderickx@nokia.com
 
 
    Andreas Kassler
-   Deggendorf Institute of Technology
+   Deggendorf Institute of Technology (to be confirmed)
