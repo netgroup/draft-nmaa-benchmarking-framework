@@ -1,0 +1,854 @@
+
+
+
+
+Network Management Research Group                        S. Salsano, Ed.
+Internet-Draft                     University of Rome Tor Vergata / CNIT
+Intended status: Informational                             W. Henderickx
+Expires: 3 May 2027                                                Nokia
+                                                              A. Kassler
+                                      Deggendorf Institute of Technology
+                                                         30 October 2026
+
+
+A Framework for Controlled Benchmarking of Network Management AI Agents
+                         on Brownfield Networks
+         draft-salsano-nmrg-nmaa-benchmarking-framework-latest
+
+Abstract
+
+   Large Language Model (LLM) based agents are being proposed to
+   configure and operate production networks.  Whether a given Network
+   Management AI Agent (NMAA) system is safe to deploy depends not only
+   on the model it uses, but on the interface through which it acts, the
+   way it is orchestrated, the kind of request it receives, and the
+   state of the network it acts upon.  This document describes a
+   framework for controlled benchmarking of NMAA systems.  The system
+   under test is delimited by two interfaces: the human-agent interface,
+   through which an operator states a requirement, and the agent-network
+   interface, through which the system acts on the network.  The
+   framework varies one factor at a time (the model, the abstraction
+   level of the agent-network interface, the agent mode, the task class)
+   while holding the others fixed, under explicit stress parameters (the
+   density of pre-existing configuration state and the rate of injected
+   faults), on a brownfield substrate where collateral damage to pre-
+   existing services can actually occur.  It scores runs with a binary,
+   zero-tolerance safety outcome and treats statistics as part of the
+   design.  A companion document specifies the corresponding
+   benchmarking methodology.
+
+About This Document
+
+   This note is to be removed before publishing as an RFC.
+
+   The latest revision of this draft can be found at
+   https://netgroup.github.io/draft-nmaa-benchmarking-framework/draft-
+   salsano-nmrg-nmaa-benchmarking-framework.html.  Status information
+   for this document may be found at https://datatracker.ietf.org/doc/
+   draft-salsano-nmrg-nmaa-benchmarking-framework/.
+
+   Discussion of this document takes place on the NMRG Research Group
+   mailing list (mailto:nmrg@irtf.org), which is archived at
+   https://mailarchive.ietf.org/arch/browse/nmrg/.  Subscribe at
+   https://www.ietf.org/mailman/listinfo/nmrg/.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/netgroup/draft-nmaa-benchmarking-framework.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 3 May 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Terminology
+   3.  Relationship to Other Work
+   4.  Reference Model and Experimental Design
+     4.1.  System Under Test
+     4.2.  Controlled Factors and Stress Parameters
+     4.3.  Task Classes and Variants
+     4.4.  Matched Budget
+     4.5.  Paired Runs and Common Random Numbers
+     4.6.  Out-of-Band Observation
+     4.7.  Outcomes and Statistics
+   5.  Factor Spaces
+     5.1.  Abstraction Levels of the Agent-Network Interface
+     5.2.  Models
+     5.3.  Agent Modes
+     5.4.  Task Classes and the Form of the HAI
+   6.  Brownfield Substrate and Scenario Generator
+   7.  Example Campaigns
+     7.1.  Fixed Model, Varying ANI Level
+     7.2.  Fixed ANI Level, Varying Model
+     7.3.  Varying Agent Mode
+     7.4.  Stress Sweeps
+   8.  Operational Considerations
+   9.  Security Considerations
+   10. IANA Considerations
+   11. Informative References
+   Appendix A.  ANI-Gamut: A Reference Implementation
+   Acknowledgments
+   Authors' Addresses
+
+1.  Introduction
+
+   Network operations are moving from commands typed by a human operator
+   to software agents, typically built around an LLM, that observe the
+   running network, change it, and confirm the result.  Most of the
+   attention in this space has gone to the agent itself: its model, its
+   prompting, its planning loop.  Several architectures for agentic
+   network management have been proposed [I-D.wmz-nmrg-agent-ndt-arch]
+   [I-D.zhao-nmop-network-management-agent], and first evaluation
+   frameworks exist [I-D.cui-nmrg-llm-benchmark]
+   [I-D.contreras-bmwg-ai-agent-benchmarking].
+
+   An operator who must decide whether to deploy such a system faces a
+   different set of questions.  Which model should the system use for a
+   given class of tasks?  Through which interface should it be allowed
+   to act: a device shell, a bounded command wrapper, model-driven
+   configuration, a typed service request, or an edit to a reconciled
+   source of truth?  Does a planner-executor agent behave better than a
+   ReAct loop?  Does the answer change when the network is densely
+   configured, or when faults occur while the agent acts?  Each of these
+   questions is, in experimental terms, the same experiment with a
+   different treatment: the system under test is kept fixed except for
+   one factor, and the effect of that factor on success, safety and cost
+   is measured.
+
+   This document describes a framework that makes that structure
+   explicit.  Its elements are:
+
+   *  a reference model that delimits the system under test between the
+      human-agent interface and the agent-network interface (Section 4);
+
+   *  a set of controlled factors and stress parameters, and an
+      experimental design (factorial, matched budget, paired runs) that
+      compares settings of one factor while holding the others fixed
+      (Section 4, Section 5);
+
+   *  a brownfield substrate, densely populated with heterogeneous pre-
+      existing services, together with a generator of reproducible
+      initial states and the invariants that those services must keep
+      satisfying (Section 6);
+
+   *  a binary, zero-tolerance safety outcome, the damage-free run, with
+      the statistics needed to bound near-zero damage probabilities
+      (Section 4.7).
+
+   The emphasis on a brownfield substrate follows from the failure mode
+   that matters in operations.  A configuration agent that completes its
+   task but silently breaks an unrelated, already-deployed service has
+   caused an outage.  Collateral damage of this kind can only occur
+   where pre-existing services share resources with the target of the
+   change: the same devices, address space, identifier pools, or global
+   settings.  A benchmark that runs agents on a nearly empty network
+   cannot observe it.
+
+   One of the controlled factors, the abstraction level of the agent-
+   network interface, deserves particular attention because it is the
+   factor that is most often fixed implicitly.  In software engineering,
+   the interface offered to an agent, and not only the model behind it,
+   is known to govern how reliably the agent acts [SWE-AGENT].
+   Operators are already climbing an abstraction ladder, from device
+   command line to model-driven configuration ([RFC6241], [RFC8342]), to
+   service-intent orchestration and reconciled sources of truth.
+   Section 5.1 describes this ladder as a spectrum of levels that can be
+   varied as a factor.
+
+   The framework is an outgrowth of an experimental study and of its
+   open-source implementation [ANIGAMUT] [ANIGAMUT-EXT] [ANIGAMUT-CODE],
+   summarized in Appendix A.  This document does not report that study;
+   it describes the framework so that other implementations and other
+   campaigns can be designed and compared within it.  The procedures,
+   metrics definitions, statistics and reporting requirements are
+   specified in a companion benchmarking methodology document
+   [METHODOLOGY], written in the style of the benchmarking tradition of
+   [RFC1242] and [RFC2544].
+
+   This document is a product of individual contributors and is
+   submitted for discussion in the Network Management Research Group.
+   It is not an IETF product and is not a standard.
+
+2.  Terminology
+
+   This document uses the following terms.
+
+   Network Management AI Agent (NMAA) system:  A software system that
+      receives a configuration or operational requirement from a human
+      operator, or from another system acting on the operator's behalf,
+      and acts on a network to satisfy it, using one or more AI models
+      (typically LLMs) to decide its actions.  The term covers single
+      agents and multi-agent systems.
+
+   Human-Agent Interface (HAI):  The interface through which a
+      requirement is given to the NMAA system: a natural-language
+      request with zero or more attached files (for example, a
+      configuration file, a topology description, a spreadsheet of
+      sites).
+
+   Agent-Network Interface (ANI):  The interface through which the NMAA
+      system observes and changes the network.  The term was introduced
+      in [I-D.cui-nmrg-llm-benchmark], where a single ANI is defined;
+      this document treats the ANI as a factor that can take different
+      abstraction levels (Section 5.1).
+
+   System Under Test (SUT) boundary:  The boundary that encloses the
+      NMAA system between the HAI and the ANI.  The model, the
+      orchestration logic and the ANI adapter are inside; the network
+      substrate, the generator, the fault injector and the observer are
+      outside.  The SUT boundary corresponds to the "Compound System"
+      boundary of [I-D.gaikwad-llm-benchmarking-terminology].
+
+   Brownfield:  A network substrate that, before the agent acts, already
+      carries a dense set of heterogeneous services sharing devices and
+      resources.
+
+   Service instance:  One deployed service (for example, one tunnel, one
+      firewall policy set for a tenant), the unit of collateral damage.
+
+   Service class:  A type of service (for example, SRv6 east-west
+      tunnels, firewall policy, underlay routing, floating IP); a
+      brownfield carries instances of several service classes.
+
+   Baseline invariant:  A machine-checkable condition that a pre-
+      existing service instance, or the network as a whole, satisfies
+      before the agent acts and must keep satisfying afterwards.
+
+   Collateral damage:  The violation of at least one baseline invariant
+      of a pre-existing service instance, or of a global invariant,
+      after the agent has acted.
+
+   Damage-free run:  A run after which no baseline invariant is
+      violated.
+
+   Task class:  A family of requirements stated on the HAI by a fixed
+      prompt template and file structure (for example, "onboard a new
+      tenant site").
+
+   Task variant:  A concrete instance of a task class (tenant, prefixes,
+      target nodes), placed in a freshly generated brownfield.
+
+   Controlled factor:  A property of the SUT whose settings are compared
+      in a campaign (model, ANI level, agent mode, task class).
+
+   Stress parameter:  A property of the environment that is swept to
+      test whether a difference between factor settings persists, grows
+      or disappears (state density, fault rate).
+
+   Run:  One execution of the SUT on one task variant, with one setting
+      of every factor and stress parameter, under a fixed budget.
+
+   Campaign:  A set of runs designed to compare settings of one
+      controlled factor.
+
+3.  Relationship to Other Work
+
+   NetConfBench [I-D.cui-nmrg-llm-benchmark] defines an evaluation
+   framework for LLM agents performing intent-driven network
+   configuration in an emulated environment, with a single Agent-Network
+   Interface (get-topology, get-running-cfg, update-cfg, execute-
+   validation) and process metrics.  The present framework adopts its
+   notion of ANI and generalizes the setting in three directions: the
+   ANI becomes one of several controlled factors; the environment is a
+   brownfield in which collateral damage can be observed; and the safety
+   outcome is binary and zero-tolerance, with statistics sized for near-
+   zero probabilities.  Task sets developed for NetConfBench could be
+   ported onto a brownfield substrate and run within this framework.
+
+   [I-D.contreras-bmwg-ai-agent-benchmarking] proposes a benchmarking
+   methodology for AI agents in network operations, focused on task-
+   oriented performance, effectiveness, efficiency, robustness and
+   coverage metrics, and requires the tool interfaces and guardrails of
+   the SUT to be documented.  The present framework is complementary: it
+   makes those interfaces and guardrails a factor to be varied, and adds
+   the brownfield substrate and the collateral-damage outcome.  The
+   companion methodology document [METHODOLOGY] is intended to be
+   aligned with that work.
+
+   [I-D.gaikwad-llm-benchmarking-terminology] and
+   [I-D.gaikwad-llm-benchmarking-profiles] define terminology and
+   profiles for benchmarking LLM serving systems, including a Compound
+   System profile with task success rate.  The SUT boundary used here is
+   a Compound System boundary; the damage-free run rate and the ANI
+   level can be seen as extensions of that profile for network
+   management.
+
+   [I-D.wmz-nmrg-agent-ndt-arch] describes an architecture for AI-driven
+   network operations and identifies agent benchmarking, as opposed to
+   model benchmarking, as an open challenge, calling for process-
+   oriented evaluation.  ICON [I-D.wnd-opsawg-icon-ps]
+   [I-D.mcw-opsawg-icon-requirements] specifies requirements for
+   observing, controlling and intervening on network management agents
+   (scope restriction, approval, interruption, rollback).  Those
+   mechanisms surround the agent; this framework measures what they, and
+   the abstraction of the interface itself, buy in terms of success and
+   safety.  Operation-level intermediate representations such as
+   [I-D.feng-netconf-naim-op] and MCP-based exposures of network
+   operations [I-D.yang-nmrg-mcp-nm] are concrete interfaces that can be
+   placed on the abstraction spectrum of Section 5.1 and compared.
+
+   NetConfEval [NETCONFEVAL] compares translation targets of different
+   abstraction as independent static tasks; here the abstraction level
+   is varied for the same task, carried out by an agent acting in a
+   closed loop on a live substrate.
+
+   Autonomy levels for networks are defined by TM Forum [TMF-IG1252],
+   3GPP [TS28100] and assumed by ETSI ZSM [ETSI-ZSM].  They classify how
+   much of the decision loop is owned by the system rather than by a
+   human.  The abstraction level of the ANI is a different and
+   orthogonal quantity: a system at any autonomy level still acts on the
+   network through some interface.  To avoid confusion with those
+   levels, and with protocol layer numbering, the ANI levels in this
+   document are named A0 to A4.  Intent-based networking [RFC9315] and
+   autonomic networking [RFC8993] provide the conceptual background for
+   the higher levels.
+
+4.  Reference Model and Experimental Design
+
+4.1.  System Under Test
+
+              +--------------------+
+              |  Human operator    |
+              +---------+----------+
+                        | requirement (prompt + files)
+   =====================|============================ HAI
+     SUT boundary       v
+   +------------------------------------------------+
+   |  NMAA system                                   |
+   |   model(s)  +  agent mode  +  ANI adapter      |
+   +----------------------+-------------------------+
+   =======================|========================== ANI (level A0..A4)
+                          v
+   +------------------------------------------------+
+   |  Brownfield substrate                          |
+   |  (pre-existing services, shared resources)     |
+   +------------------------------------------------+
+        ^                         ^
+        | fault injection         | out-of-band observation
+   +----+-----+             +-----+------------------+
+   | injector |             | observer (invariants,  |
+   +----------+             | task test cases)       |
+                            +------------------------+
+
+                      Figure 1: Reference model
+
+   The SUT is the NMAA system between the HAI and the ANI (Figure 1).
+   The level of the ANI is an internal choice of the NMAA system,
+   invisible to the operator: the same HAI request can be met by an
+   agent acting through a raw shell or through a typed service
+   interface.  The substrate, the scenario generator, the fault injector
+   and the observer are part of the test environment, outside the SUT.
+
+4.2.  Controlled Factors and Stress Parameters
+
+   A campaign compares settings of one controlled factor; the others are
+   held fixed.  The controlled factors are:
+
+   *  the model, or the set of models, used by the NMAA system;
+
+   *  the abstraction level of the ANI (Section 5.1);
+
+   *  the agent mode: single-turn generation, ReAct-style loop, planner-
+      executor, with or without a recovery step;
+
+   *  the task class, including the form of the HAI request.
+
+   Two stress parameters are swept across campaigns, to test whether a
+   difference between factor settings is robust:
+
+   *  the state density of the brownfield: the number of service classes
+      and of instances per class populated before the agent acts;
+
+   *  the fault rate lambda: the rate of faults injected in the
+      substrate while the agent acts.
+
+4.3.  Task Classes and Variants
+
+   A task class is defined on the HAI by a prompt template and a file
+   structure.  For each cell of the design, the scenario generator draws
+   S variants of the task class; each variant fixes the concrete request
+   and is placed in a freshly generated brownfield.  The prompt text and
+   file structure are identical across the variants of a class, so that
+   what varies between runs is the situation and not the wording.  Two
+   task classes that request the same reconfiguration in different words
+   can be used to separate the effect of expression from the effect of
+   the situation.
+
+4.4.  Matched Budget
+
+   Settings of a factor are compared under a matched budget.  The
+   execution budget (model, system prompt, agent mode, step and token
+   caps, retry policy, observation interface) is held constant except
+   for the factor under study.  The development budget is matched as
+   well: when the ANI level is varied, a single shared agent is used,
+   with no level-specific tuning beyond exposing each interface.  Cost
+   (tokens, messages, steps, wall-clock time) is recorded as a dependent
+   variable, so that a factor setting can be found to reach a safe state
+   at lower cost, not only to be safer at equal cost.
+
+4.5.  Paired Runs and Common Random Numbers
+
+   Each task variant bundles the request, the generated brownfield and
+   the fault seed, and is replayed across the settings of the factor
+   under study.  This makes the comparison paired: the same physical
+   event (the same fault, at the same point of the same scenario) is
+   presented to every setting.  Faults are injected in the substrate,
+   below the ANI, so that the stimulus is identical for every setting
+   and the comparison measures how the effect propagates through each
+   SUT.
+
+4.6.  Out-of-Band Observation
+
+   Success and safety are measured by the test environment, not by the
+   SUT.  The observer checks the test cases of the requested service and
+   the baseline invariants of every pre-existing service instance after
+   the run, through a channel that does not depend on the ANI level, so
+   that every setting is scored identically.
+
+4.7.  Outcomes and Statistics
+
+   The primary safety outcome of a run is binary: the run is damage-free
+   or it is not.  The primary safety statistic of a cell is the damage-
+   free run rate.  The completion outcome is the functional success of
+   the requested service.  Each run also receives an outcome label:
+   clean success, dangerous success (the service works but damage
+   occurred), clean failure, destructive failure.  Cost, recovery after
+   a fault, and the magnitude of damage when it occurs are secondary
+   outcomes.
+
+   Because the target regime is a damage probability near zero, the
+   statistics are part of the design and not an afterthought:
+   proportions are estimated with interval methods valid near zero
+   (Wilson, Clopper-Pearson), the number of runs per cell is sized from
+   the bound to be asserted (by the rule of three, zero damaged runs out
+   of S give an approximate 95% upper bound of 3/S), and paired
+   comparisons use tests on discordant pairs (McNemar).  Definitions and
+   procedures are given in [METHODOLOGY].
+
+5.  Factor Spaces
+
+5.1.  Abstraction Levels of the Agent-Network Interface
+
+   The ANI levels form a spectrum from raw device access to reconciled
+   service automation (Table 1).
+
+      +=======+====================+================================+
+      | Level | Interface          | Key safety or transactional    |
+      |       |                    | property                       |
+      +=======+====================+================================+
+      | A0    | raw device shell   | none; unbounded action space   |
+      +-------+--------------------+--------------------------------+
+      | A1    | bounded per-device | generic guardrail (allowlist), |
+      |       | command wrapper    | snapshot and manual rollback   |
+      +-------+--------------------+--------------------------------+
+      | A2    | model-driven       | device-level candidate         |
+      |       | configuration      | datastore, validation,         |
+      |       | (NETCONF/YANG)     | confirmed commit               |
+      +-------+--------------------+--------------------------------+
+      | A3-T  | typed              | cross-device workflow          |
+      |       | transactional      | transaction, active            |
+      |       | service intent     | validation, rollback           |
+      +-------+--------------------+--------------------------------+
+      | A3-R  | reconciled source  | versioned desired state, drift |
+      |       | of truth           | detection and reconciliation   |
+      +-------+--------------------+--------------------------------+
+      | A4    | service intent and | both properties of A3-T and    |
+      |       | source of truth    | A3-R                           |
+      |       | combined           |                                |
+      +-------+--------------------+--------------------------------+
+
+                      Table 1: ANI abstraction levels
+
+   A0 to A2 form an ordered base, ordered by how far the interface moves
+   the agent from raw mutation and how much safety it interposes.  A2
+   corresponds to standardized model-driven configuration with candidate
+   datastores and confirmed commit [RFC6241] [RFC8342] [RFC8040].
+
+   Above A2 the levels form a plane spanned by two axes: scope, from
+   per-device configuration to cross-device service intent, and state
+   and control model, from one-shot actions to a persistent, versioned
+   desired state continuously reconciled against the network.  A3-T
+   advances the first axis, A3-R the second; they are not ordered with
+   respect to each other.  A4 combines both, and is where several
+   commercial service orchestrators operate.
+
+   A level denotes the abstraction exposed to the agent, not the stack
+   used to enforce it, and a level need not be built on the one below.
+   A typed service intent (A3-T) can be realized by serializing the
+   intent into device commands, without A2.  This decoupling is what
+   allows the same task to be exposed at several levels on one
+   substrate.
+
+   A level can be complemented by ad-hoc measures that do not change its
+   abstraction, such as a blocklist of known destructive commands added
+   to A1.  Such measures are treated as ablations within a level, so
+   that the contribution of a structural interface and of hand-tuned
+   prohibitions can be separated.
+
+5.2.  Models
+
+   The model factor covers the choice of model, model size and version,
+   and inference settings.  A campaign that fixes the ANI level and
+   varies the model answers the question of which model is adequate for
+   a task class at a given level; one that varies both can test whether
+   a higher level compensates for a weaker model.
+
+   TODO: reporting of model identity and version for closed models;
+   handling of model updates during a campaign.
+
+5.3.  Agent Modes
+
+   TODO: single-turn, ReAct, planner-executor, multi-agent; with and
+   without recovery; what is held fixed when the agent mode is the
+   factor.
+
+5.4.  Task Classes and the Form of the HAI
+
+   TODO: task taxonomy (onboarding, change-set on a live tenant,
+   decommissioning, troubleshooting); HAI forms from terse ticket to
+   structured intent; held-out targets placed to interact with existing
+   state.
+
+6.  Brownfield Substrate and Scenario Generator
+
+   This section outlines the requirements on the test environment;
+   details are left to future revisions.
+
+   *  Multi-service substrate.  Instances of several service classes
+      coexist on the same devices and share namespaces, address space,
+      identifier pools and global settings, so that resource contention,
+      and therefore collateral damage, is possible.  Topology size and
+      state density are independent scales: density is configuration
+      state, not additional nodes, and can be swept on a modest
+      topology.
+
+   *  Layered, seeded scenario generator.  The initial state is
+      described by a manifest that stacks service-class layers on a
+      topology base.  Each layer establishes its prerequisites,
+      generates its instances as real device state together with their
+      baseline invariants (so that the oracle is emitted with the
+      state), and verifies them.  The manifest and a seed determine the
+      scenario.  Every pre-existing service passes its invariants before
+      the run.
+
+   *  Realism of the initial state.  Service sizes and node load follow
+      skewed distributions; shared-resource dependencies and prefix
+      adjacency or overlap occur at a tunable rate, so that shadowing
+      and collisions are genuine traps; the target of the task is placed
+      to interact with existing state.
+
+   *  Substrate-level fault injection.  Faults are injected at node and
+      link level (loss, latency, link down, frozen node, daemon restart,
+      held lock, concurrent writer, transient pool exhaustion),
+      identically for every setting, never inside an ANI adapter.
+      Partial application, double application on retry and lockout are
+      measured outcomes, not injected stimuli.
+
+   TODO: minimum requirements for a conforming substrate; how the
+   generator's realism can be assessed.
+
+7.  Example Campaigns
+
+   This section illustrates how operational questions map onto campaigns
+   of the framework.
+
+7.1.  Fixed Model, Varying ANI Level
+
+   Question: through which interface should an agent be allowed to act?
+   The model, agent mode, task class and budget are fixed; the ANI level
+   is the treatment.  A pilot of this campaign is reported in
+   [ANIGAMUT], on a multi-tenant SRv6 brownfield of about twenty-five
+   nodes with on the order of ten service classes.  On a change-set task
+   on a live 25-site tenant (two additions, two moves, one removal), an
+   agent acting at A0 completed 0 of 6 paired variants and the same
+   agent at A3-T completed 6 of 6 (exact McNemar test on the six
+   discordant pairs, p = 0.031), using about 3 steps and 42k tokens per
+   run against 40 steps (the cap) and about 375k tokens.  Under injected
+   faults (lambda = 0.3) on an onboarding task, A3-T completed 4 of 4
+   runs and A0 none.  The damage-free run rate was 1.00 at every level:
+   the agents failed safe and the substrate kept tenants in separate
+   VRFs, so collateral safety was determined by the isolation of shared
+   state rather than by the ANI level.  This illustrates why the
+   substrate must contain services whose shared state isolation does not
+   protect, if collateral damage is to be measured at all.
+
+7.2.  Fixed ANI Level, Varying Model
+
+   Question: which model is adequate for a task class at a given level?
+   The ANI level, agent mode, task class and budget are fixed; the model
+   is the treatment.  The paired design is unchanged: each task variant
+   is replayed across models.
+
+7.3.  Varying Agent Mode
+
+   Question: does the orchestration of the agent matter more than the
+   model or the interface?  The agent mode is the treatment, with model
+   and ANI level fixed.
+
+7.4.  Stress Sweeps
+
+   Any of the campaigns above can be repeated across values of the state
+   density and of the fault rate.  A difference between settings that
+   grows with density or with the fault rate indicates a property that
+   small, sparse testbeds would hide.
+
+8.  Operational Considerations
+
+   TODO: how an operator can use results to place an agent at a level
+   for a given service type; limits of emulated substrates; transfer of
+   results to production; cost of campaigns.
+
+9.  Security Considerations
+
+   Benchmarking NMAA systems requires granting agents the ability to
+   change network configuration.  Campaigns need to be run on isolated
+   substrates that cannot reach production networks or management
+   systems; this applies in particular to the lowest ANI levels, which
+   give the agent an unbounded action space.
+
+   Results of a campaign characterize a SUT on a given substrate and
+   budget.  They do not establish that a system is safe to deploy; a
+   damage-free run rate of 1.00 over S runs only bounds the damage
+   probability, approximately, below 3/S at 95% confidence.
+
+   The framework measures accidental collateral damage by agents acting
+   in good faith.  Adversarial inputs (prompt injection through the HAI
+   or through data read from the network, compromised tools) are out of
+   scope of this version and are addressed by other work.  Generic
+   guardrails and blocklists can make a level appear safe by tuning to
+   the benchmark; the framework treats them as explicit ablations so
+   that this effect can be measured.
+
+10.  IANA Considerations
+
+   This document has no IANA actions.
+
+11.  Informative References
+
+   [ANIGAMUT] Bracciale, L., Loreti, P., Mayer, A., Salsano, S., and W.
+              Henderickx, "ANI-Gamut: Benchmarking Agent Reliability
+              across the Gamut of Agent-Network Interface Abstractions",
+              22nd International Conference on Network and Service
+              Management (CNSM), 2026.
+
+   [ANIGAMUT-CODE]
+              netgroup, University of Rome Tor Vergata, "ANI-Gamut:
+              playground, scenario generator and harness (release
+              cnsm2026)", 2026, <https://github.com/netgroup/ani-gamut>.
+
+   [ANIGAMUT-EXT]
+              Bracciale, L., Loreti, P., Mayer, A., Salsano, S., and W.
+              Henderickx, "ANI-Gamut: Benchmarking Agent Reliability
+              across the Gamut of Agent-Network Interface Abstractions
+              (extended version)", 2026,
+              <https://arxiv.org/abs/2609.22723>.
+
+   [ETSI-ZSM] ETSI, "Zero-touch network and Service Management (ZSM);
+              Reference Architecture".
+
+   [I-D.contreras-bmwg-ai-agent-benchmarking]
+              Contreras, L. M., "Benchmarking Methodology for AI Agents
+              in Network Operations", Work in Progress, Internet-Draft,
+              draft-contreras-bmwg-ai-agent-benchmarking-00, 6 July
+              2026, <https://datatracker.ietf.org/doc/html/draft-
+              contreras-bmwg-ai-agent-benchmarking-00>.
+
+   [I-D.cui-nmrg-llm-benchmark]
+              Cui, Y., Liu, C., Xie, X., and C. Du, "A Framework to
+              Evaluate LLM Agents for Network Configuration", Work in
+              Progress, Internet-Draft, draft-cui-nmrg-llm-benchmark-02,
+              6 July 2026, <https://datatracker.ietf.org/doc/html/draft-
+              cui-nmrg-llm-benchmark-02>.
+
+   [I-D.feng-netconf-naim-op]
+              Feng, C., "Operation Intent Intermediate Representation
+              for AI-Assisted Network Management", Work in Progress,
+              Internet-Draft, draft-feng-netconf-naim-op-00, 18 July
+              2026, <https://datatracker.ietf.org/doc/html/draft-feng-
+              netconf-naim-op-00>.
+
+   [I-D.gaikwad-llm-benchmarking-profiles]
+              Gaikwad, M., "Performance Benchmarking Profiles for Large
+              Language Model Serving Systems", Work in Progress,
+              Internet-Draft, draft-gaikwad-llm-benchmarking-profiles-
+              01, 9 August 2026, <https://datatracker.ietf.org/doc/html/
+              draft-gaikwad-llm-benchmarking-profiles-01>.
+
+   [I-D.gaikwad-llm-benchmarking-terminology]
+              Gaikwad, M., "Benchmarking Terminology for Large Language
+              Model Serving", Work in Progress, Internet-Draft, draft-
+              gaikwad-llm-benchmarking-terminology-01, 9 August 2026,
+              <https://datatracker.ietf.org/doc/html/draft-gaikwad-llm-
+              benchmarking-terminology-01>.
+
+   [I-D.mcw-opsawg-icon-requirements]
+              Ma, Q., Ceccarelli, D., Wu, Q., and L. M. Contreras,
+              "Architecture and Requirements for Observability, Control
+              and Intervention of Network Management Agents", Work in
+              Progress, Internet-Draft, draft-mcw-opsawg-icon-
+              requirements-01, 19 July 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mcw-opsawg-
+              icon-requirements-01>.
+
+   [I-D.wmz-nmrg-agent-ndt-arch]
+              Wu, Q., Zhou, C., Contreras, L. M., Han, S., and Y. Hong,
+              "Network Digital Twin and Agentic AI based Architecture
+              for AI-driven Network Operations", Work in Progress,
+              Internet-Draft, draft-wmz-nmrg-agent-ndt-arch-06, 28
+              August 2026, <https://datatracker.ietf.org/doc/html/draft-
+              wmz-nmrg-agent-ndt-arch-06>.
+
+   [I-D.wnd-opsawg-icon-ps]
+              Wu, Q., Ceccarelli, D., Li, Z., Contreras, L. M., and Q.
+              Ma, "Problem Statement for Observability, Intervention and
+              Control (I&C) in Multi-Agent Autonomous Networks", Work in
+              Progress, Internet-Draft, draft-wnd-opsawg-icon-ps-00, 5
+              July 2026, <https://datatracker.ietf.org/doc/html/draft-
+              wnd-opsawg-icon-ps-00>.
+
+   [I-D.yang-nmrg-mcp-nm]
+              YUANYUANYANG, Wu, Q., Lopez, D., Moreno, N. R.,
+              Tailhardat, L., and S. Prabhu, "Applicability of MCP for
+              the Network Management", Work in Progress, Internet-Draft,
+              draft-yang-nmrg-mcp-nm-03, 5 July 2026,
+              <https://datatracker.ietf.org/doc/html/draft-yang-nmrg-
+              mcp-nm-03>.
+
+   [I-D.zhao-nmop-network-management-agent]
+              XingZhao, Wang, M., Wu, B., Ceccarelli, D., Zheng, H., and
+              J. Zhou, "AI based Network Management Agent(NMA): Concepts
+              and Architecture", Work in Progress, Internet-Draft,
+              draft-zhao-nmop-network-management-agent-05, 5 July 2026,
+              <https://datatracker.ietf.org/doc/html/draft-zhao-nmop-
+              network-management-agent-05>.
+
+   [METHODOLOGY]
+              Salsano, S., "Benchmarking Methodology for Network
+              Management AI Agents on Brownfield Networks", Work in
+              Progress, Internet-Draft, draft-salsano-bmwg-nmaa-
+              benchmarking-methodology-latest,
+              <https://datatracker.ietf.org/doc/html/draft-salsano-bmwg-
+              nmaa-benchmarking-methodology-latest>.
+
+   [NETCONFEVAL]
+              Wang, C., "NetConfEval: Can LLMs Facilitate Network
+              Configuration?", ACM CoNEXT, 2024.
+
+   [PLAYGROUND]
+              Salsano, S., "A Playground for Benchmarking Agentic AI in
+              Network Management", Mediterranean Artificial Intelligence
+              and Networking Conference (MAIN), 2026.
+
+   [RFC1242]  Bradner, S., "Benchmarking Terminology for Network
+              Interconnection Devices", RFC 1242, DOI 10.17487/RFC1242,
+              July 1991, <https://www.rfc-editor.org/rfc/rfc1242>.
+
+   [RFC2544]  Bradner, S. and J. McQuaid, "Benchmarking Methodology for
+              Network Interconnect Devices", RFC 2544,
+              DOI 10.17487/RFC2544, March 1999,
+              <https://www.rfc-editor.org/rfc/rfc2544>.
+
+   [RFC6241]  Enns, R., Ed., Bjorklund, M., Ed., Schoenwaelder, J., Ed.,
+              and A. Bierman, Ed., "Network Configuration Protocol
+              (NETCONF)", RFC 6241, DOI 10.17487/RFC6241, June 2011,
+              <https://www.rfc-editor.org/rfc/rfc6241>.
+
+   [RFC8040]  Bierman, A., Bjorklund, M., and K. Watsen, "RESTCONF
+              Protocol", RFC 8040, DOI 10.17487/RFC8040, January 2017,
+              <https://www.rfc-editor.org/rfc/rfc8040>.
+
+   [RFC8342]  Bjorklund, M., Schoenwaelder, J., Shafer, P., Watsen, K.,
+              and R. Wilton, "Network Management Datastore Architecture
+              (NMDA)", RFC 8342, DOI 10.17487/RFC8342, March 2018,
+              <https://www.rfc-editor.org/rfc/rfc8342>.
+
+   [RFC8993]  Behringer, M., Ed., Carpenter, B., Eckert, T., Ciavaglia,
+              L., and J. Nobre, "A Reference Model for Autonomic
+              Networking", RFC 8993, DOI 10.17487/RFC8993, May 2021,
+              <https://www.rfc-editor.org/rfc/rfc8993>.
+
+   [RFC9315]  Clemm, A., Ciavaglia, L., Granville, L. Z., and J.
+              Tantsura, "Intent-Based Networking - Concepts and
+              Definitions", RFC 9315, DOI 10.17487/RFC9315, October
+              2022, <https://www.rfc-editor.org/rfc/rfc9315>.
+
+   [SWE-AGENT]
+              Yang, J., "SWE-agent: Agent-Computer Interfaces Enable
+              Automated Software Engineering", Advances in Neural
+              Information Processing Systems (NeurIPS), 2024.
+
+   [TMF-IG1252]
+              TM Forum, "Autonomous Network Levels Evaluation
+              Methodology (IG1252)".
+
+   [TS28100]  3GPP, "Management and orchestration; Levels of autonomous
+              network (TS 28.100)".
+
+Appendix A.  ANI-Gamut: A Reference Implementation
+
+   ANI-Gamut [ANIGAMUT] [ANIGAMUT-EXT] is an open-source implementation
+   of the framework [ANIGAMUT-CODE] (release tag cnsm2026).  It
+   provides:
+
+   *  a harness with per-level ANI adapters for A0, A1 and A3-T, A1 with
+      an optional blocklist as an ablation, A2 and A3-R being defined
+      but not yet implemented;
+
+   *  a multi-service SRv6 substrate on Containerlab with Linux and FRR
+      nodes, using a NEXT-CSID data plane, with firewall, underlay
+      routing, floating-IP and addressing services coexisting on the
+      same nodes;
+
+   *  a layered, seeded scenario generator with co-emitted invariants;
+
+   *  substrate-level fault injection and out-of-band observation.
+
+   It builds on the benchmarking playground described in [PLAYGROUND].
+   A project page is available at https://netgroup.github.io/ani-gamut/
+   (https://netgroup.github.io/ani-gamut/).
+
+Acknowledgments
+
+   The framework originates from work carried out with Lorenzo
+   Bracciale, Pierpaolo Loreti and Andrea Mayer.  The authors thank
+   Frank Loh and Papasega Wade for discussions.
+
+Authors' Addresses
+
+   Stefano Salsano (editor)
+   University of Rome Tor Vergata / CNIT
+   Email: stefano.salsano@uniroma2.it
+
+
+   Wim Henderickx
+   Nokia
+   Email: wim.henderickx@nokia.com
+
+
+   Andreas Kassler
+   Deggendorf Institute of Technology

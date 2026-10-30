@@ -1,0 +1,2180 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>A Framework for Controlled Benchmarking of Network Management AI Agents on Brownfield Networks</title>
+<meta content="Stefano Salsano" name="author">
+<meta content="Wim Henderickx" name="author">
+<meta content="Andreas Kassler" name="author">
+<meta content="
+       Large Language Model (LLM) based agents are being proposed to configure
+and operate production networks. Whether a given Network Management AI
+Agent (NMAA) system is safe to deploy depends not only on the model it
+uses, but on the interface through which it acts, the way it is
+orchestrated, the kind of request it receives, and the state of the
+network it acts upon. This document describes a framework for
+controlled benchmarking of NMAA systems. The system under test is
+delimited by two interfaces: the human-agent interface, through which an
+operator states a requirement, and the agent-network interface, through
+which the system acts on the network. The framework varies one factor at
+a time (the model, the abstraction level of the agent-network
+interface, the agent mode, the task class) while holding the others
+fixed, under explicit stress parameters (the density of pre-existing
+configuration state and the rate of injected faults), on a brownfield
+substrate where collateral damage to pre-existing services can actually
+occur. It scores runs with a binary, zero-tolerance safety outcome and
+treats statistics as part of the design. A companion document specifies
+the corresponding benchmarking methodology. 
+    " name="description">
+<meta content="xml2rfc 3.34.1" name="generator">
+<meta content="AI agents" name="keyword">
+<meta content="network management" name="keyword">
+<meta content="benchmarking" name="keyword">
+<meta content="brownfield" name="keyword">
+<meta content="agent-network interface" name="keyword">
+<meta content="draft-salsano-nmrg-nmaa-benchmarking-framework-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.1
+    Python 3.14.8
+    ConfigArgParse 1.8.0
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.13.4
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.9.2
+-->
+<link href="draft-salsano-nmrg-nmaa-benchmarking-framework.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">NMAA Benchmarking Framework</td>
+<td class="right">October 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Salsano, et al.</td>
+<td class="center">Expires 3 May 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Network Management Research Group</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-salsano-nmrg-nmaa-benchmarking-framework-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-10-30" class="published">30 October 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-05-03">3 May 2027</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">S. Salsano, <span class="editor">Ed.</span>
+</div>
+<div class="org">University of Rome Tor Vergata / CNIT</div>
+</div>
+<div class="author">
+      <div class="author-name">W. Henderickx</div>
+<div class="org">Nokia</div>
+</div>
+<div class="author">
+      <div class="author-name">A. Kassler</div>
+<div class="org">Deggendorf Institute of Technology</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">A Framework for Controlled Benchmarking of Network Management AI Agents on Brownfield Networks</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">Large Language Model (LLM) based agents are being proposed to configure
+and operate production networks. Whether a given Network Management AI
+Agent (NMAA) system is safe to deploy depends not only on the model it
+uses, but on the interface through which it acts, the way it is
+orchestrated, the kind of request it receives, and the state of the
+network it acts upon. This document describes a framework for
+controlled benchmarking of NMAA systems. The system under test is
+delimited by two interfaces: the human-agent interface, through which an
+operator states a requirement, and the agent-network interface, through
+which the system acts on the network. The framework varies one factor at
+a time (the model, the abstraction level of the agent-network
+interface, the agent mode, the task class) while holding the others
+fixed, under explicit stress parameters (the density of pre-existing
+configuration state and the rate of injected faults), on a brownfield
+substrate where collateral damage to pre-existing services can actually
+occur. It scores runs with a binary, zero-tolerance safety outcome and
+treats statistics as part of the design. A companion document specifies
+the corresponding benchmarking methodology.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://netgroup.github.io/draft-nmaa-benchmarking-framework/draft-salsano-nmrg-nmaa-benchmarking-framework.html">https://netgroup.github.io/draft-nmaa-benchmarking-framework/draft-salsano-nmrg-nmaa-benchmarking-framework.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-salsano-nmrg-nmaa-benchmarking-framework/">https://datatracker.ietf.org/doc/draft-salsano-nmrg-nmaa-benchmarking-framework/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        NMRG Research Group mailing list (<span><a href="mailto:nmrg@irtf.org">mailto:nmrg@irtf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/nmrg/">https://mailarchive.ietf.org/arch/browse/nmrg/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/nmrg/">https://www.ietf.org/mailman/listinfo/nmrg/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/netgroup/draft-nmaa-benchmarking-framework">https://github.com/netgroup/draft-nmaa-benchmarking-framework</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 3 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-terminology" class="internal xref">Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-relationship-to-other-work" class="internal xref">Relationship to Other Work</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-reference-model-and-experim" class="internal xref">Reference Model and Experimental Design</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-system-under-test" class="internal xref">System Under Test</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-controlled-factors-and-stre" class="internal xref">Controlled Factors and Stress Parameters</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-task-classes-and-variants" class="internal xref">Task Classes and Variants</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-matched-budget" class="internal xref">Matched Budget</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.5">
+                <p id="section-toc.1-1.4.2.5.1"><a href="#section-4.5" class="auto internal xref">4.5</a>.  <a href="#name-paired-runs-and-common-rand" class="internal xref">Paired Runs and Common Random Numbers</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6">
+                <p id="section-toc.1-1.4.2.6.1"><a href="#section-4.6" class="auto internal xref">4.6</a>.  <a href="#name-out-of-band-observation" class="internal xref">Out-of-Band Observation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.7">
+                <p id="section-toc.1-1.4.2.7.1"><a href="#section-4.7" class="auto internal xref">4.7</a>.  <a href="#name-outcomes-and-statistics" class="internal xref">Outcomes and Statistics</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-factor-spaces" class="internal xref">Factor Spaces</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-abstraction-levels-of-the-a" class="internal xref">Abstraction Levels of the Agent-Network Interface</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-models" class="internal xref">Models</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-agent-modes" class="internal xref">Agent Modes</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
+                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-task-classes-and-the-form-o" class="internal xref">Task Classes and the Form of the HAI</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-brownfield-substrate-and-sc" class="internal xref">Brownfield Substrate and Scenario Generator</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-example-campaigns" class="internal xref">Example Campaigns</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-fixed-model-varying-ani-lev" class="internal xref">Fixed Model, Varying ANI Level</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-fixed-ani-level-varying-mod" class="internal xref">Fixed ANI Level, Varying Model</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.3">
+                <p id="section-toc.1-1.7.2.3.1"><a href="#section-7.3" class="auto internal xref">7.3</a>.  <a href="#name-varying-agent-mode" class="internal xref">Varying Agent Mode</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.4">
+                <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-stress-sweeps" class="internal xref">Stress Sweeps</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-operational-considerations" class="internal xref">Operational Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-ani-gamut-a-reference-imple" class="internal xref">ANI-Gamut: A Reference Implementation</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="intro">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">Network operations are moving from commands typed by a human operator to
+software agents, typically built around an LLM, that observe the running
+network, change it, and confirm the result. Most of the attention in
+this space has gone to the agent itself: its model, its prompting, its
+planning loop. Several architectures for agentic network management have
+been proposed <span>[<a href="#I-D.wmz-nmrg-agent-ndt-arch" class="cite xref">I-D.wmz-nmrg-agent-ndt-arch</a>]</span>
+        <span>[<a href="#I-D.zhao-nmop-network-management-agent" class="cite xref">I-D.zhao-nmop-network-management-agent</a>]</span>, and first evaluation
+frameworks exist <span>[<a href="#I-D.cui-nmrg-llm-benchmark" class="cite xref">I-D.cui-nmrg-llm-benchmark</a>]</span>
+        <span>[<a href="#I-D.contreras-bmwg-ai-agent-benchmarking" class="cite xref">I-D.contreras-bmwg-ai-agent-benchmarking</a>]</span>.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">An operator who must decide whether to deploy such a system faces a
+different set of questions. Which model should the system use for a
+given class of tasks? Through which interface should it be allowed to
+act: a device shell, a bounded command wrapper, model-driven
+configuration, a typed service request, or an edit to a reconciled
+source of truth? Does a planner-executor agent behave better than a
+ReAct loop? Does the answer change when the network is densely
+configured, or when faults occur while the agent acts? Each of these
+questions is, in experimental terms, the same experiment with a
+different treatment: the system under test is kept fixed except for one
+factor, and the effect of that factor on success, safety and cost is
+measured.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">This document describes a framework that makes that structure explicit.
+Its elements are:<a href="#section-1-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-4.1">
+          <p id="section-1-4.1.1">a reference model that delimits the system under test between the
+human-agent interface and the agent-network interface
+(<a href="#model" class="auto internal xref">Section 4</a>);<a href="#section-1-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-4.2">
+          <p id="section-1-4.2.1">a set of controlled factors and stress parameters, and an
+experimental design (factorial, matched budget, paired runs) that
+compares settings of one factor while holding the others fixed
+(<a href="#model" class="auto internal xref">Section 4</a>, <a href="#factors" class="auto internal xref">Section 5</a>);<a href="#section-1-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-4.3">
+          <p id="section-1-4.3.1">a brownfield substrate, densely populated with heterogeneous
+pre-existing services, together with a generator of reproducible
+initial states and the invariants that those services must keep
+satisfying (<a href="#substrate" class="auto internal xref">Section 6</a>);<a href="#section-1-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-4.4">
+          <p id="section-1-4.4.1">a binary, zero-tolerance safety outcome, the damage-free run, with
+the statistics needed to bound near-zero damage probabilities
+(<a href="#outcomes" class="auto internal xref">Section 4.7</a>).<a href="#section-1-4.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-5">The emphasis on a brownfield substrate follows from the failure mode
+that matters in operations. A configuration agent that completes its
+task but silently breaks an unrelated, already-deployed service has
+caused an outage. Collateral damage of this kind can only occur where
+pre-existing services share resources with the target of the change:
+the same devices, address space, identifier pools, or global settings.
+A benchmark that runs agents on a nearly empty network cannot observe
+it.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-6">One of the controlled factors, the abstraction level of the
+agent-network interface, deserves particular attention because it is
+the factor that is most often fixed implicitly. In software
+engineering, the interface offered to an agent, and not only the model
+behind it, is known to govern how reliably the agent acts
+<span>[<a href="#SWE-AGENT" class="cite xref">SWE-AGENT</a>]</span>. Operators are already climbing an abstraction ladder,
+from device command line to model-driven configuration
+(<span>[<a href="#RFC6241" class="cite xref">RFC6241</a>]</span>, <span>[<a href="#RFC8342" class="cite xref">RFC8342</a>]</span>), to service-intent orchestration and
+reconciled sources of truth. <a href="#ani-levels" class="auto internal xref">Section 5.1</a> describes this ladder as a
+spectrum of levels that can be varied as a factor.<a href="#section-1-6" class="pilcrow">¶</a></p>
+<p id="section-1-7">The framework is an outgrowth of an experimental study and of its
+open-source implementation <span>[<a href="#ANIGAMUT" class="cite xref">ANIGAMUT</a>]</span> <span>[<a href="#ANIGAMUT-EXT" class="cite xref">ANIGAMUT-EXT</a>]</span>
+        <span>[<a href="#ANIGAMUT-CODE" class="cite xref">ANIGAMUT-CODE</a>]</span>, summarized in <a href="#implementation" class="auto internal xref">Appendix A</a>. This document does
+not report that study; it describes the framework so that other
+implementations and other campaigns can be designed and compared
+within it. The procedures, metrics definitions, statistics and reporting
+requirements are specified in a companion benchmarking methodology
+document <span>[<a href="#METHODOLOGY" class="cite xref">METHODOLOGY</a>]</span>, written in the style of the benchmarking
+tradition of <span>[<a href="#RFC1242" class="cite xref">RFC1242</a>]</span> and <span>[<a href="#RFC2544" class="cite xref">RFC2544</a>]</span>.<a href="#section-1-7" class="pilcrow">¶</a></p>
+<p id="section-1-8">This document is a product of individual contributors and is submitted
+for discussion in the Network Management Research Group. It is not an
+IETF product and is not a standard.<a href="#section-1-8" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="terminology">
+<section id="section-2">
+      <h2 id="name-terminology">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-terminology" class="section-name selfRef">Terminology</a>
+      </h2>
+<p id="section-2-1">This document uses the following terms.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-2">
+        <dt id="section-2-2.1">Network Management AI Agent (NMAA) system:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.2">
+          <p id="section-2-2.2.1">A software system that receives a configuration or operational
+requirement from a human operator, or from another system acting on
+the operator's behalf, and acts on a network to satisfy it, using one
+or more AI models (typically LLMs) to decide its actions. The term
+covers single agents and multi-agent systems.<a href="#section-2-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.3">Human-Agent Interface (HAI):</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.4">
+          <p id="section-2-2.4.1">The interface through which a requirement is given to the NMAA
+system: a natural-language request with zero or more attached files
+(for example, a configuration file, a topology description, a
+spreadsheet of sites).<a href="#section-2-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.5">Agent-Network Interface (ANI):</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.6">
+          <p id="section-2-2.6.1">The interface through which the NMAA system observes and changes the
+network. The term was introduced in <span>[<a href="#I-D.cui-nmrg-llm-benchmark" class="cite xref">I-D.cui-nmrg-llm-benchmark</a>]</span>,
+where a single ANI is defined; this document treats the ANI as a
+factor that can take different abstraction levels (<a href="#ani-levels" class="auto internal xref">Section 5.1</a>).<a href="#section-2-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.7">System Under Test (SUT) boundary:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.8">
+          <p id="section-2-2.8.1">The boundary that encloses the NMAA system between the HAI and the
+ANI. The model, the orchestration logic and the ANI adapter are
+inside; the network substrate, the generator, the fault injector and
+the observer are outside. The SUT boundary corresponds to the
+"Compound System" boundary of <span>[<a href="#I-D.gaikwad-llm-benchmarking-terminology" class="cite xref">I-D.gaikwad-llm-benchmarking-terminology</a>]</span>.<a href="#section-2-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.9">Brownfield:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.10">
+          <p id="section-2-2.10.1">A network substrate that, before the agent acts, already carries a
+dense set of heterogeneous services sharing devices and resources.<a href="#section-2-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.11">Service instance:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.12">
+          <p id="section-2-2.12.1">One deployed service (for example, one tunnel, one firewall policy
+set for a tenant), the unit of collateral damage.<a href="#section-2-2.12.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.13">Service class:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.14">
+          <p id="section-2-2.14.1">A type of service (for example, SRv6 east-west tunnels, firewall
+policy, underlay routing, floating IP); a brownfield carries instances
+of several service classes.<a href="#section-2-2.14.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.15">Baseline invariant:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.16">
+          <p id="section-2-2.16.1">A machine-checkable condition that a pre-existing service instance,
+or the network as a whole, satisfies before the agent acts and must
+keep satisfying afterwards.<a href="#section-2-2.16.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.17">Collateral damage:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.18">
+          <p id="section-2-2.18.1">The violation of at least one baseline invariant of a pre-existing
+service instance, or of a global invariant, after the agent has acted.<a href="#section-2-2.18.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.19">Damage-free run:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.20">
+          <p id="section-2-2.20.1">A run after which no baseline invariant is violated.<a href="#section-2-2.20.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.21">Task class:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.22">
+          <p id="section-2-2.22.1">A family of requirements stated on the HAI by a fixed prompt
+template and file structure (for example, "onboard a new tenant
+site").<a href="#section-2-2.22.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.23">Task variant:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.24">
+          <p id="section-2-2.24.1">A concrete instance of a task class (tenant, prefixes, target nodes),
+placed in a freshly generated brownfield.<a href="#section-2-2.24.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.25">Controlled factor:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.26">
+          <p id="section-2-2.26.1">A property of the SUT whose settings are compared in a campaign
+(model, ANI level, agent mode, task class).<a href="#section-2-2.26.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.27">Stress parameter:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.28">
+          <p id="section-2-2.28.1">A property of the environment that is swept to test whether a
+difference between factor settings persists, grows or disappears
+(state density, fault rate).<a href="#section-2-2.28.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.29">Run:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.30">
+          <p id="section-2-2.30.1">One execution of the SUT on one task variant, with one setting of
+every factor and stress parameter, under a fixed budget.<a href="#section-2-2.30.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.31">Campaign:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.32">
+          <p id="section-2-2.32.1">A set of runs designed to compare settings of one controlled factor.<a href="#section-2-2.32.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="related">
+<section id="section-3">
+      <h2 id="name-relationship-to-other-work">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-relationship-to-other-work" class="section-name selfRef">Relationship to Other Work</a>
+      </h2>
+<p id="section-3-1">NetConfBench <span>[<a href="#I-D.cui-nmrg-llm-benchmark" class="cite xref">I-D.cui-nmrg-llm-benchmark</a>]</span> defines an evaluation
+framework for LLM agents performing intent-driven network configuration
+in an emulated environment, with a single Agent-Network Interface
+(get-topology, get-running-cfg, update-cfg, execute-validation) and
+process metrics. The present framework adopts its notion of ANI and
+generalizes the setting in three directions: the ANI becomes one of
+several controlled factors; the environment is a brownfield in which
+collateral damage can be observed; and the safety outcome is binary and
+zero-tolerance, with statistics sized for near-zero probabilities.
+Task sets developed for NetConfBench could be ported onto a brownfield
+substrate and run within this framework.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2"><span>[<a href="#I-D.contreras-bmwg-ai-agent-benchmarking" class="cite xref">I-D.contreras-bmwg-ai-agent-benchmarking</a>]</span> proposes a benchmarking
+methodology for AI agents in network operations, focused on
+task-oriented performance, effectiveness, efficiency, robustness and
+coverage metrics, and requires the tool interfaces and guardrails of
+the SUT to be documented. The present framework is complementary: it
+makes those interfaces and guardrails a factor to be varied, and adds
+the brownfield substrate and the collateral-damage outcome. The
+companion methodology document
+<span>[<a href="#METHODOLOGY" class="cite xref">METHODOLOGY</a>]</span> is intended to be
+aligned with that work.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<p id="section-3-3"><span>[<a href="#I-D.gaikwad-llm-benchmarking-terminology" class="cite xref">I-D.gaikwad-llm-benchmarking-terminology</a>]</span> and
+<span>[<a href="#I-D.gaikwad-llm-benchmarking-profiles" class="cite xref">I-D.gaikwad-llm-benchmarking-profiles</a>]</span> define terminology and
+profiles for benchmarking LLM serving systems, including a Compound
+System profile with task success rate. The SUT boundary used here is a
+Compound System boundary; the damage-free run rate and the ANI level
+can be seen as extensions of that profile for network management.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-4"><span>[<a href="#I-D.wmz-nmrg-agent-ndt-arch" class="cite xref">I-D.wmz-nmrg-agent-ndt-arch</a>]</span> describes an architecture for
+AI-driven network operations and identifies agent benchmarking, as
+opposed to model benchmarking, as an open challenge, calling for
+process-oriented evaluation. ICON <span>[<a href="#I-D.wnd-opsawg-icon-ps" class="cite xref">I-D.wnd-opsawg-icon-ps</a>]</span>
+        <span>[<a href="#I-D.mcw-opsawg-icon-requirements" class="cite xref">I-D.mcw-opsawg-icon-requirements</a>]</span> specifies requirements for
+observing, controlling and intervening on network management agents
+(scope restriction, approval, interruption, rollback). Those mechanisms
+surround the agent; this framework measures what they, and the
+abstraction of the interface itself, buy in terms of success and
+safety. Operation-level intermediate representations such as
+<span>[<a href="#I-D.feng-netconf-naim-op" class="cite xref">I-D.feng-netconf-naim-op</a>]</span> and MCP-based exposures of network
+operations <span>[<a href="#I-D.yang-nmrg-mcp-nm" class="cite xref">I-D.yang-nmrg-mcp-nm</a>]</span> are concrete interfaces that can be
+placed on the abstraction spectrum of <a href="#ani-levels" class="auto internal xref">Section 5.1</a> and compared.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5">NetConfEval <span>[<a href="#NETCONFEVAL" class="cite xref">NETCONFEVAL</a>]</span> compares translation targets of different
+abstraction as independent static tasks; here the abstraction level is
+varied for the same task, carried out by an agent acting in a closed
+loop on a live substrate.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-6">Autonomy levels for networks are defined by TM Forum <span>[<a href="#TMF-IG1252" class="cite xref">TMF-IG1252</a>]</span>,
+3GPP <span>[<a href="#TS28100" class="cite xref">TS28100</a>]</span> and assumed by ETSI ZSM <span>[<a href="#ETSI-ZSM" class="cite xref">ETSI-ZSM</a>]</span>. They classify
+how much of the decision loop is owned by the system rather than by a
+human. The abstraction level of the ANI is a different and orthogonal
+quantity: a system at any autonomy level still acts on the network
+through some interface. To avoid confusion with those levels, and with
+protocol layer numbering, the ANI levels in this document are named
+A0 to A4. Intent-based networking <span>[<a href="#RFC9315" class="cite xref">RFC9315</a>]</span> and autonomic networking
+<span>[<a href="#RFC8993" class="cite xref">RFC8993</a>]</span> provide the conceptual background for the higher levels.<a href="#section-3-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="model">
+<section id="section-4">
+      <h2 id="name-reference-model-and-experim">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-reference-model-and-experim" class="section-name selfRef">Reference Model and Experimental Design</a>
+      </h2>
+<div id="sut">
+<section id="section-4.1">
+        <h3 id="name-system-under-test">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-system-under-test" class="section-name selfRef">System Under Test</a>
+        </h3>
+<span id="name-reference-model"></span><div id="fig-sut">
+<figure id="figure-1">
+          <div class="alignLeft art-ascii-art art-text artwork" id="section-4.1-1.1">
+<pre>
+              +--------------------+
+              |  Human operator    |
+              +---------+----------+
+                        | requirement (prompt + files)
+   =====================|============================ HAI
+     SUT boundary       v
+   +------------------------------------------------+
+   |  NMAA system                                   |
+   |   model(s)  +  agent mode  +  ANI adapter      |
+   +----------------------+-------------------------+
+   =======================|========================== ANI (level A0..A4)
+                          v
+   +------------------------------------------------+
+   |  Brownfield substrate                          |
+   |  (pre-existing services, shared resources)     |
+   +------------------------------------------------+
+        ^                         ^
+        | fault injection         | out-of-band observation
+   +----+-----+             +-----+------------------+
+   | injector |             | observer (invariants,  |
+   +----------+             | task test cases)       |
+                            +------------------------+
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-reference-model" class="selfRef">Reference model</a>
+          </figcaption></figure>
+</div>
+<p id="section-4.1-2">The SUT is the NMAA system between the HAI and the ANI
+(<a href="#fig-sut" class="auto internal xref">Figure 1</a>). The level of the ANI is an internal choice of the NMAA
+system, invisible to the operator: the same HAI request can be met by
+an agent acting through a raw shell or through a typed service
+interface. The substrate, the scenario generator, the fault injector
+and the observer are part of the test environment, outside the SUT.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="controlled-factors-and-stress-parameters">
+<section id="section-4.2">
+        <h3 id="name-controlled-factors-and-stre">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-controlled-factors-and-stre" class="section-name selfRef">Controlled Factors and Stress Parameters</a>
+        </h3>
+<p id="section-4.2-1">A campaign compares settings of one controlled factor; the others are
+held fixed. The controlled factors are:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.2-2.1">
+            <p id="section-4.2-2.1.1">the model, or the set of models, used by the NMAA system;<a href="#section-4.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.2-2.2">
+            <p id="section-4.2-2.2.1">the abstraction level of the ANI (<a href="#ani-levels" class="auto internal xref">Section 5.1</a>);<a href="#section-4.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.2-2.3">
+            <p id="section-4.2-2.3.1">the agent mode: single-turn generation, ReAct-style loop,
+planner-executor, with or without a recovery step;<a href="#section-4.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.2-2.4">
+            <p id="section-4.2-2.4.1">the task class, including the form of the HAI request.<a href="#section-4.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.2-3">Two stress parameters are swept across campaigns, to test whether a
+difference between factor settings is robust:<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.2-4.1">
+            <p id="section-4.2-4.1.1">the state density of the brownfield: the number of service classes
+and of instances per class populated before the agent acts;<a href="#section-4.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.2-4.2">
+            <p id="section-4.2-4.2.1">the fault rate lambda: the rate of faults injected in the substrate
+while the agent acts.<a href="#section-4.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="task-classes-and-variants">
+<section id="section-4.3">
+        <h3 id="name-task-classes-and-variants">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-task-classes-and-variants" class="section-name selfRef">Task Classes and Variants</a>
+        </h3>
+<p id="section-4.3-1">A task class is defined on the HAI by a prompt template and a file
+structure. For each cell of the design, the scenario generator draws S
+variants of the task class; each variant fixes the concrete request and
+is placed in a freshly generated brownfield. The prompt text and file
+structure are identical across the variants of a class, so that what
+varies between runs is the situation and not the wording. Two task
+classes that request the same reconfiguration in different words can be
+used to separate the effect of expression from the effect of the
+situation.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="matched-budget">
+<section id="section-4.4">
+        <h3 id="name-matched-budget">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-matched-budget" class="section-name selfRef">Matched Budget</a>
+        </h3>
+<p id="section-4.4-1">Settings of a factor are compared under a matched budget. The execution
+budget (model, system prompt, agent mode, step and token caps, retry
+policy, observation interface) is held constant except for the factor
+under study. The development budget is matched as well: when the ANI
+level is varied, a single shared agent is used, with no level-specific
+tuning beyond exposing each interface. Cost (tokens, messages, steps,
+wall-clock time) is recorded as a dependent variable, so that a factor
+setting can be found to reach a safe state at lower cost, not only to be
+safer at equal cost.<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="paired-runs-and-common-random-numbers">
+<section id="section-4.5">
+        <h3 id="name-paired-runs-and-common-rand">
+<a href="#section-4.5" class="section-number selfRef">4.5. </a><a href="#name-paired-runs-and-common-rand" class="section-name selfRef">Paired Runs and Common Random Numbers</a>
+        </h3>
+<p id="section-4.5-1">Each task variant bundles the request, the generated brownfield and the
+fault seed, and is replayed across the settings of the factor under
+study. This makes the comparison paired: the same physical event (the
+same fault, at the same point of the same scenario) is presented to
+every setting. Faults are injected in the substrate, below the ANI, so
+that the stimulus is identical for every setting and the comparison
+measures how the effect propagates through each SUT.<a href="#section-4.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="out-of-band-observation">
+<section id="section-4.6">
+        <h3 id="name-out-of-band-observation">
+<a href="#section-4.6" class="section-number selfRef">4.6. </a><a href="#name-out-of-band-observation" class="section-name selfRef">Out-of-Band Observation</a>
+        </h3>
+<p id="section-4.6-1">Success and safety are measured by the test environment, not by the
+SUT. The observer checks the test cases of the requested service and
+the baseline invariants of every pre-existing service instance after the
+run, through a channel that does not depend on the ANI level, so that
+every setting is scored identically.<a href="#section-4.6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="outcomes">
+<section id="section-4.7">
+        <h3 id="name-outcomes-and-statistics">
+<a href="#section-4.7" class="section-number selfRef">4.7. </a><a href="#name-outcomes-and-statistics" class="section-name selfRef">Outcomes and Statistics</a>
+        </h3>
+<p id="section-4.7-1">The primary safety outcome of a run is binary: the run is damage-free
+or it is not. The primary safety statistic of a cell is the
+damage-free run rate. The completion outcome is the functional success
+of the requested service. Each run also receives an outcome label:
+clean success, dangerous success (the service works but damage
+occurred), clean failure, destructive failure. Cost, recovery after a
+fault, and the magnitude of damage when it occurs are secondary
+outcomes.<a href="#section-4.7-1" class="pilcrow">¶</a></p>
+<p id="section-4.7-2">Because the target regime is a damage probability near zero, the
+statistics are part of the design and not an afterthought: proportions
+are estimated with interval methods valid near zero (Wilson,
+Clopper-Pearson), the number of runs per cell is sized from the bound
+to be asserted (by the rule of three, zero damaged runs out of S give an
+approximate 95% upper bound of 3/S), and paired comparisons use tests
+on discordant pairs (McNemar). Definitions and procedures are given in
+<span>[<a href="#METHODOLOGY" class="cite xref">METHODOLOGY</a>]</span>.<a href="#section-4.7-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="factors">
+<section id="section-5">
+      <h2 id="name-factor-spaces">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-factor-spaces" class="section-name selfRef">Factor Spaces</a>
+      </h2>
+<div id="ani-levels">
+<section id="section-5.1">
+        <h3 id="name-abstraction-levels-of-the-a">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-abstraction-levels-of-the-a" class="section-name selfRef">Abstraction Levels of the Agent-Network Interface</a>
+        </h3>
+<p id="section-5.1-1">The ANI levels form a spectrum from raw device access to reconciled
+service automation (<a href="#tab-levels" class="auto internal xref">Table 1</a>).<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<span id="name-ani-abstraction-levels"></span><div id="tab-levels">
+<table class="center" id="table-1">
+          <caption>
+<a href="#table-1" class="selfRef">Table 1</a>:
+<a href="#name-ani-abstraction-levels" class="selfRef">ANI abstraction levels</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Level</th>
+              <th class="text-left" rowspan="1" colspan="1">Interface</th>
+              <th class="text-left" rowspan="1" colspan="1">Key safety or transactional property</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A0</td>
+              <td class="text-left" rowspan="1" colspan="1">raw device shell</td>
+              <td class="text-left" rowspan="1" colspan="1">none; unbounded action space</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A1</td>
+              <td class="text-left" rowspan="1" colspan="1">bounded per-device command wrapper</td>
+              <td class="text-left" rowspan="1" colspan="1">generic guardrail (allowlist), snapshot and manual rollback</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A2</td>
+              <td class="text-left" rowspan="1" colspan="1">model-driven configuration (NETCONF/YANG)</td>
+              <td class="text-left" rowspan="1" colspan="1">device-level candidate datastore, validation, confirmed commit</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A3-T</td>
+              <td class="text-left" rowspan="1" colspan="1">typed transactional service intent</td>
+              <td class="text-left" rowspan="1" colspan="1">cross-device workflow transaction, active validation, rollback</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A3-R</td>
+              <td class="text-left" rowspan="1" colspan="1">reconciled source of truth</td>
+              <td class="text-left" rowspan="1" colspan="1">versioned desired state, drift detection and reconciliation</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A4</td>
+              <td class="text-left" rowspan="1" colspan="1">service intent and source of truth combined</td>
+              <td class="text-left" rowspan="1" colspan="1">both properties of A3-T and A3-R</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+<p id="section-5.1-3">A0 to A2 form an ordered base, ordered by how far the interface moves
+the agent from raw mutation and how much safety it interposes. A2
+corresponds to standardized model-driven configuration with candidate
+datastores and confirmed commit <span>[<a href="#RFC6241" class="cite xref">RFC6241</a>]</span> <span>[<a href="#RFC8342" class="cite xref">RFC8342</a>]</span> <span>[<a href="#RFC8040" class="cite xref">RFC8040</a>]</span>.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">Above A2 the levels form a plane spanned by two axes: scope, from
+per-device configuration to cross-device service intent, and state and
+control model, from one-shot actions to a persistent, versioned desired
+state continuously reconciled against the network. A3-T advances the
+first axis, A3-R the second; they are not ordered with respect to each
+other. A4 combines both, and is where several commercial service
+orchestrators operate.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">A level denotes the abstraction exposed to the agent, not the stack used
+to enforce it, and a level need not be built on the one below. A typed
+service intent (A3-T) can be realized by serializing the intent into
+device commands, without A2. This decoupling is what allows the same
+task to be exposed at several levels on one substrate.<a href="#section-5.1-5" class="pilcrow">¶</a></p>
+<p id="section-5.1-6">A level can be complemented by ad-hoc measures that do not change its
+abstraction, such as a blocklist of known destructive commands added to
+A1. Such measures are treated as ablations within a level, so that the
+contribution of a structural interface and of hand-tuned prohibitions
+can be separated.<a href="#section-5.1-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="models">
+<section id="section-5.2">
+        <h3 id="name-models">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-models" class="section-name selfRef">Models</a>
+        </h3>
+<p id="section-5.2-1">The model factor covers the choice of model, model size and version,
+and inference settings. A campaign that fixes the ANI level and varies
+the model answers the question of which model is adequate for a task
+class at a given level; one that varies both can test whether a higher
+level compensates for a weaker model.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2">TODO: reporting of model identity and version for closed models;
+handling of model updates during a campaign.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="agent-modes">
+<section id="section-5.3">
+        <h3 id="name-agent-modes">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-agent-modes" class="section-name selfRef">Agent Modes</a>
+        </h3>
+<p id="section-5.3-1">TODO: single-turn, ReAct, planner-executor, multi-agent; with and
+without recovery; what is held fixed when the agent mode is the factor.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="task-classes-and-the-form-of-the-hai">
+<section id="section-5.4">
+        <h3 id="name-task-classes-and-the-form-o">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-task-classes-and-the-form-o" class="section-name selfRef">Task Classes and the Form of the HAI</a>
+        </h3>
+<p id="section-5.4-1">TODO: task taxonomy (onboarding, change-set on a live tenant,
+decommissioning, troubleshooting); HAI forms from terse ticket to
+structured intent; held-out targets placed to interact with existing
+state.<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="substrate">
+<section id="section-6">
+      <h2 id="name-brownfield-substrate-and-sc">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-brownfield-substrate-and-sc" class="section-name selfRef">Brownfield Substrate and Scenario Generator</a>
+      </h2>
+<p id="section-6-1">This section outlines the requirements on the test environment;
+details are left to future revisions.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6-2.1">
+          <p id="section-6-2.1.1">Multi-service substrate. Instances of several service classes coexist
+on the same devices and share namespaces, address space, identifier
+pools and global settings, so that resource contention, and therefore
+collateral damage, is possible. Topology size and state density are
+independent scales: density is configuration state, not additional
+nodes, and can be swept on a modest topology.<a href="#section-6-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.2">
+          <p id="section-6-2.2.1">Layered, seeded scenario generator. The initial state is described by
+a manifest that stacks service-class layers on a topology base. Each
+layer establishes its prerequisites, generates its instances as real
+device state together with their baseline invariants (so that the
+oracle is emitted with the state), and verifies them. The manifest
+and a seed determine the scenario. Every pre-existing service passes
+its invariants before the run.<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.3">
+          <p id="section-6-2.3.1">Realism of the initial state. Service sizes and node load follow
+skewed distributions; shared-resource dependencies and prefix
+adjacency or overlap occur at a tunable rate, so that shadowing and
+collisions are genuine traps; the target of the task is placed to
+interact with existing state.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.4">
+          <p id="section-6-2.4.1">Substrate-level fault injection. Faults are injected at node and
+link level (loss, latency, link down, frozen node, daemon restart,
+held lock, concurrent writer, transient pool exhaustion), identically
+for every setting, never inside an ANI adapter. Partial application,
+double application on retry and lockout are measured outcomes, not
+injected stimuli.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-6-3">TODO: minimum requirements for a conforming substrate; how the
+generator's realism can be assessed.<a href="#section-6-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="campaigns">
+<section id="section-7">
+      <h2 id="name-example-campaigns">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-example-campaigns" class="section-name selfRef">Example Campaigns</a>
+      </h2>
+<p id="section-7-1">This section illustrates how operational questions map onto campaigns
+of the framework.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<div id="fixed-model-varying-ani-level">
+<section id="section-7.1">
+        <h3 id="name-fixed-model-varying-ani-lev">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-fixed-model-varying-ani-lev" class="section-name selfRef">Fixed Model, Varying ANI Level</a>
+        </h3>
+<p id="section-7.1-1">Question: through which interface should an agent be allowed to act?
+The model, agent mode, task class and budget are fixed; the ANI level is
+the treatment. A pilot of this campaign is reported in
+<span>[<a href="#ANIGAMUT" class="cite xref">ANIGAMUT</a>]</span>, on a multi-tenant SRv6 brownfield of about twenty-five
+nodes with on the order of ten service classes. On a change-set task on
+a live 25-site tenant (two additions, two moves, one removal), an agent
+acting at A0 completed 0 of 6 paired variants and the same agent at
+A3-T completed 6 of 6 (exact McNemar test on the six discordant pairs,
+p = 0.031), using about 3 steps and 42k tokens per run against 40
+steps (the cap) and about 375k tokens. Under injected faults
+(lambda = 0.3) on an onboarding task, A3-T completed 4 of 4 runs and A0
+none. The damage-free run rate was 1.00 at every level: the agents
+failed safe and the substrate kept tenants in separate VRFs, so
+collateral safety was determined by the isolation of shared state
+rather than by the ANI level. This illustrates why the substrate must
+contain services whose shared state isolation does not protect, if
+collateral damage is to be measured at all.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="fixed-ani-level-varying-model">
+<section id="section-7.2">
+        <h3 id="name-fixed-ani-level-varying-mod">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-fixed-ani-level-varying-mod" class="section-name selfRef">Fixed ANI Level, Varying Model</a>
+        </h3>
+<p id="section-7.2-1">Question: which model is adequate for a task class at a given level?
+The ANI level, agent mode, task class and budget are fixed; the model
+is the treatment. The paired design is unchanged: each task variant is
+replayed across models.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="varying-agent-mode">
+<section id="section-7.3">
+        <h3 id="name-varying-agent-mode">
+<a href="#section-7.3" class="section-number selfRef">7.3. </a><a href="#name-varying-agent-mode" class="section-name selfRef">Varying Agent Mode</a>
+        </h3>
+<p id="section-7.3-1">Question: does the orchestration of the agent matter more than the model
+or the interface? The agent mode is the treatment, with model and ANI
+level fixed.<a href="#section-7.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="stress-sweeps">
+<section id="section-7.4">
+        <h3 id="name-stress-sweeps">
+<a href="#section-7.4" class="section-number selfRef">7.4. </a><a href="#name-stress-sweeps" class="section-name selfRef">Stress Sweeps</a>
+        </h3>
+<p id="section-7.4-1">Any of the campaigns above can be repeated across values of the state
+density and of the fault rate. A difference between settings that grows
+with density or with the fault rate indicates a property that small,
+sparse testbeds would hide.<a href="#section-7.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="operational">
+<section id="section-8">
+      <h2 id="name-operational-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-operational-considerations" class="section-name selfRef">Operational Considerations</a>
+      </h2>
+<p id="section-8-1">TODO: how an operator can use results to place an agent at a level for
+a given service type; limits of emulated substrates; transfer of
+results to production; cost of campaigns.<a href="#section-8-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security">
+<section id="section-9">
+      <h2 id="name-security-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-9-1">Benchmarking NMAA systems requires granting agents the ability to change
+network configuration. Campaigns need to be run on isolated substrates
+that cannot reach production networks or management systems; this
+applies in particular to the lowest ANI levels, which give the agent an
+unbounded action space.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-2">Results of a campaign characterize a SUT on a given substrate and
+budget. They do not establish that a system is safe to deploy; a
+damage-free run rate of 1.00 over S runs only bounds the damage
+probability, approximately, below 3/S at 95% confidence.<a href="#section-9-2" class="pilcrow">¶</a></p>
+<p id="section-9-3">The framework measures accidental collateral damage by agents acting in
+good faith. Adversarial inputs (prompt injection through the HAI or
+through data read from the network, compromised tools) are out of scope
+of this version and are addressed by other work. Generic guardrails and
+blocklists can make a level appear safe by tuning to the benchmark; the
+framework treats them as explicit ablations so that this effect can be
+measured.<a href="#section-9-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana">
+<section id="section-10">
+      <h2 id="name-iana-considerations">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-10-1">This document has no IANA actions.<a href="#section-10-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-11">
+      <h2 id="name-informative-references">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+      </h2>
+<dl class="references">
+<dt id="ANIGAMUT">[ANIGAMUT]</dt>
+      <dd>
+<span class="refAuthor">Bracciale, L.</span>, <span class="refAuthor">Loreti, P.</span>, <span class="refAuthor">Mayer, A.</span>, <span class="refAuthor">Salsano, S.</span>, and <span class="refAuthor">W. Henderickx</span>, <span class="refTitle">"ANI-Gamut: Benchmarking Agent Reliability across the Gamut of Agent-Network Interface Abstractions"</span>, <span class="refContent">22nd International Conference on Network and Service Management (CNSM)</span>, <time datetime="2026" class="refDate">2026</time>. </dd>
+<dd class="break"></dd>
+<dt id="ANIGAMUT-CODE">[ANIGAMUT-CODE]</dt>
+      <dd>
+<span class="refAuthor">netgroup, University of Rome Tor Vergata</span>, <span class="refTitle">"ANI-Gamut: playground, scenario generator and harness (release cnsm2026)"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://github.com/netgroup/ani-gamut">https://github.com/netgroup/ani-gamut</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ANIGAMUT-EXT">[ANIGAMUT-EXT]</dt>
+      <dd>
+<span class="refAuthor">Bracciale, L.</span>, <span class="refAuthor">Loreti, P.</span>, <span class="refAuthor">Mayer, A.</span>, <span class="refAuthor">Salsano, S.</span>, and <span class="refAuthor">W. Henderickx</span>, <span class="refTitle">"ANI-Gamut: Benchmarking Agent Reliability across the Gamut of Agent-Network Interface Abstractions (extended version)"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://arxiv.org/abs/2609.22723">https://arxiv.org/abs/2609.22723</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="ETSI-ZSM">[ETSI-ZSM]</dt>
+      <dd>
+<span class="refAuthor">ETSI</span>, <span class="refTitle">"Zero-touch network and Service Management (ZSM); Reference Architecture"</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.contreras-bmwg-ai-agent-benchmarking">[I-D.contreras-bmwg-ai-agent-benchmarking]</dt>
+      <dd>
+<span class="refAuthor">Contreras, L. M.</span>, <span class="refTitle">"Benchmarking Methodology for AI Agents in Network Operations"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-contreras-bmwg-ai-agent-benchmarking-00</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-contreras-bmwg-ai-agent-benchmarking-00">https://datatracker.ietf.org/doc/html/draft-contreras-bmwg-ai-agent-benchmarking-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.cui-nmrg-llm-benchmark">[I-D.cui-nmrg-llm-benchmark]</dt>
+      <dd>
+<span class="refAuthor">Cui, Y.</span>, <span class="refAuthor">Liu, C.</span>, <span class="refAuthor">Xie, X.</span>, and <span class="refAuthor">C. Du</span>, <span class="refTitle">"A Framework to Evaluate LLM Agents for Network Configuration"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-cui-nmrg-llm-benchmark-02</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-cui-nmrg-llm-benchmark-02">https://datatracker.ietf.org/doc/html/draft-cui-nmrg-llm-benchmark-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.feng-netconf-naim-op">[I-D.feng-netconf-naim-op]</dt>
+      <dd>
+<span class="refAuthor">Feng, C.</span>, <span class="refTitle">"Operation Intent Intermediate Representation for AI-Assisted Network Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-feng-netconf-naim-op-00</span>, <time datetime="2026-07-18" class="refDate">18 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-feng-netconf-naim-op-00">https://datatracker.ietf.org/doc/html/draft-feng-netconf-naim-op-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.gaikwad-llm-benchmarking-profiles">[I-D.gaikwad-llm-benchmarking-profiles]</dt>
+      <dd>
+<span class="refAuthor">Gaikwad, M.</span>, <span class="refTitle">"Performance Benchmarking Profiles for Large Language Model Serving Systems"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-gaikwad-llm-benchmarking-profiles-01</span>, <time datetime="2026-08-09" class="refDate">9 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-gaikwad-llm-benchmarking-profiles-01">https://datatracker.ietf.org/doc/html/draft-gaikwad-llm-benchmarking-profiles-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.gaikwad-llm-benchmarking-terminology">[I-D.gaikwad-llm-benchmarking-terminology]</dt>
+      <dd>
+<span class="refAuthor">Gaikwad, M.</span>, <span class="refTitle">"Benchmarking Terminology for Large Language Model Serving"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-gaikwad-llm-benchmarking-terminology-01</span>, <time datetime="2026-08-09" class="refDate">9 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-gaikwad-llm-benchmarking-terminology-01">https://datatracker.ietf.org/doc/html/draft-gaikwad-llm-benchmarking-terminology-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.mcw-opsawg-icon-requirements">[I-D.mcw-opsawg-icon-requirements]</dt>
+      <dd>
+<span class="refAuthor">Ma, Q.</span>, <span class="refAuthor">Ceccarelli, D.</span>, <span class="refAuthor">Wu, Q.</span>, and <span class="refAuthor">L. M. Contreras</span>, <span class="refTitle">"Architecture and Requirements for Observability, Control and Intervention of Network Management Agents"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcw-opsawg-icon-requirements-01</span>, <time datetime="2026-07-19" class="refDate">19 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcw-opsawg-icon-requirements-01">https://datatracker.ietf.org/doc/html/draft-mcw-opsawg-icon-requirements-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.wmz-nmrg-agent-ndt-arch">[I-D.wmz-nmrg-agent-ndt-arch]</dt>
+      <dd>
+<span class="refAuthor">Wu, Q.</span>, <span class="refAuthor">Zhou, C.</span>, <span class="refAuthor">Contreras, L. M.</span>, <span class="refAuthor">Han, S.</span>, and <span class="refAuthor">Y. Hong</span>, <span class="refTitle">"Network Digital Twin and Agentic AI based Architecture for AI-driven Network Operations"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-wmz-nmrg-agent-ndt-arch-06</span>, <time datetime="2026-08-28" class="refDate">28 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-wmz-nmrg-agent-ndt-arch-06">https://datatracker.ietf.org/doc/html/draft-wmz-nmrg-agent-ndt-arch-06</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.wnd-opsawg-icon-ps">[I-D.wnd-opsawg-icon-ps]</dt>
+      <dd>
+<span class="refAuthor">Wu, Q.</span>, <span class="refAuthor">Ceccarelli, D.</span>, <span class="refAuthor">Li, Z.</span>, <span class="refAuthor">Contreras, L. M.</span>, and <span class="refAuthor">Q. Ma</span>, <span class="refTitle">"Problem Statement for Observability, Intervention and Control (I&amp;C) in Multi-Agent Autonomous Networks"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-wnd-opsawg-icon-ps-00</span>, <time datetime="2026-07-05" class="refDate">5 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-wnd-opsawg-icon-ps-00">https://datatracker.ietf.org/doc/html/draft-wnd-opsawg-icon-ps-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.yang-nmrg-mcp-nm">[I-D.yang-nmrg-mcp-nm]</dt>
+      <dd>
+<span class="refAuthor">YUANYUANYANG</span>, <span class="refAuthor">Wu, Q.</span>, <span class="refAuthor">Lopez, D.</span>, <span class="refAuthor">Moreno, N. R.</span>, <span class="refAuthor">Tailhardat, L.</span>, and <span class="refAuthor">S. Prabhu</span>, <span class="refTitle">"Applicability of MCP for the Network Management"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-yang-nmrg-mcp-nm-03</span>, <time datetime="2026-07-05" class="refDate">5 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-yang-nmrg-mcp-nm-03">https://datatracker.ietf.org/doc/html/draft-yang-nmrg-mcp-nm-03</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.zhao-nmop-network-management-agent">[I-D.zhao-nmop-network-management-agent]</dt>
+      <dd>
+<span class="refAuthor">XingZhao</span>, <span class="refAuthor">Wang, M.</span>, <span class="refAuthor">Wu, B.</span>, <span class="refAuthor">Ceccarelli, D.</span>, <span class="refAuthor">Zheng, H.</span>, and <span class="refAuthor">J. Zhou</span>, <span class="refTitle">"AI based Network Management Agent(NMA): Concepts and Architecture"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-zhao-nmop-network-management-agent-05</span>, <time datetime="2026-07-05" class="refDate">5 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-zhao-nmop-network-management-agent-05">https://datatracker.ietf.org/doc/html/draft-zhao-nmop-network-management-agent-05</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="METHODOLOGY">[METHODOLOGY]</dt>
+      <dd>
+<span class="refAuthor">Salsano, S.</span>, <span class="refTitle">"Benchmarking Methodology for Network Management AI Agents on Brownfield Networks"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-salsano-bmwg-nmaa-benchmarking-methodology-latest</span>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-salsano-bmwg-nmaa-benchmarking-methodology-latest">https://datatracker.ietf.org/doc/html/draft-salsano-bmwg-nmaa-benchmarking-methodology-latest</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="NETCONFEVAL">[NETCONFEVAL]</dt>
+      <dd>
+<span class="refAuthor">Wang, C.</span>, <span class="refTitle">"NetConfEval: Can LLMs Facilitate Network Configuration?"</span>, <span class="refContent">ACM CoNEXT</span>, <time datetime="2024" class="refDate">2024</time>. </dd>
+<dd class="break"></dd>
+<dt id="PLAYGROUND">[PLAYGROUND]</dt>
+      <dd>
+<span class="refAuthor">Salsano, S.</span>, <span class="refTitle">"A Playground for Benchmarking Agentic AI in Network Management"</span>, <span class="refContent">Mediterranean Artificial Intelligence and Networking Conference (MAIN)</span>, <time datetime="2026" class="refDate">2026</time>. </dd>
+<dd class="break"></dd>
+<dt id="RFC1242">[RFC1242]</dt>
+      <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Benchmarking Terminology for Network Interconnection Devices"</span>, <span class="seriesInfo">RFC 1242</span>, <span class="seriesInfo">DOI 10.17487/RFC1242</span>, <time datetime="1991-07" class="refDate">July 1991</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc1242">https://www.rfc-editor.org/rfc/rfc1242</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2544">[RFC2544]</dt>
+      <dd>
+<span class="refAuthor">Bradner, S.</span> and <span class="refAuthor">J. McQuaid</span>, <span class="refTitle">"Benchmarking Methodology for Network Interconnect Devices"</span>, <span class="seriesInfo">RFC 2544</span>, <span class="seriesInfo">DOI 10.17487/RFC2544</span>, <time datetime="1999-03" class="refDate">March 1999</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2544">https://www.rfc-editor.org/rfc/rfc2544</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6241">[RFC6241]</dt>
+      <dd>
+<span class="refAuthor">Enns, R., Ed.</span>, <span class="refAuthor">Bjorklund, M., Ed.</span>, <span class="refAuthor">Schoenwaelder, J., Ed.</span>, and <span class="refAuthor">A. Bierman, Ed.</span>, <span class="refTitle">"Network Configuration Protocol (NETCONF)"</span>, <span class="seriesInfo">RFC 6241</span>, <span class="seriesInfo">DOI 10.17487/RFC6241</span>, <time datetime="2011-06" class="refDate">June 2011</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6241">https://www.rfc-editor.org/rfc/rfc6241</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8040">[RFC8040]</dt>
+      <dd>
+<span class="refAuthor">Bierman, A.</span>, <span class="refAuthor">Bjorklund, M.</span>, and <span class="refAuthor">K. Watsen</span>, <span class="refTitle">"RESTCONF Protocol"</span>, <span class="seriesInfo">RFC 8040</span>, <span class="seriesInfo">DOI 10.17487/RFC8040</span>, <time datetime="2017-01" class="refDate">January 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8040">https://www.rfc-editor.org/rfc/rfc8040</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8342">[RFC8342]</dt>
+      <dd>
+<span class="refAuthor">Bjorklund, M.</span>, <span class="refAuthor">Schoenwaelder, J.</span>, <span class="refAuthor">Shafer, P.</span>, <span class="refAuthor">Watsen, K.</span>, and <span class="refAuthor">R. Wilton</span>, <span class="refTitle">"Network Management Datastore Architecture (NMDA)"</span>, <span class="seriesInfo">RFC 8342</span>, <span class="seriesInfo">DOI 10.17487/RFC8342</span>, <time datetime="2018-03" class="refDate">March 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8342">https://www.rfc-editor.org/rfc/rfc8342</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8993">[RFC8993]</dt>
+      <dd>
+<span class="refAuthor">Behringer, M., Ed.</span>, <span class="refAuthor">Carpenter, B.</span>, <span class="refAuthor">Eckert, T.</span>, <span class="refAuthor">Ciavaglia, L.</span>, and <span class="refAuthor">J. Nobre</span>, <span class="refTitle">"A Reference Model for Autonomic Networking"</span>, <span class="seriesInfo">RFC 8993</span>, <span class="seriesInfo">DOI 10.17487/RFC8993</span>, <time datetime="2021-05" class="refDate">May 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8993">https://www.rfc-editor.org/rfc/rfc8993</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9315">[RFC9315]</dt>
+      <dd>
+<span class="refAuthor">Clemm, A.</span>, <span class="refAuthor">Ciavaglia, L.</span>, <span class="refAuthor">Granville, L. Z.</span>, and <span class="refAuthor">J. Tantsura</span>, <span class="refTitle">"Intent-Based Networking - Concepts and Definitions"</span>, <span class="seriesInfo">RFC 9315</span>, <span class="seriesInfo">DOI 10.17487/RFC9315</span>, <time datetime="2022-10" class="refDate">October 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9315">https://www.rfc-editor.org/rfc/rfc9315</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SWE-AGENT">[SWE-AGENT]</dt>
+      <dd>
+<span class="refAuthor">Yang, J.</span>, <span class="refTitle">"SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering"</span>, <span class="refContent">Advances in Neural Information Processing Systems (NeurIPS)</span>, <time datetime="2024" class="refDate">2024</time>. </dd>
+<dd class="break"></dd>
+<dt id="TMF-IG1252">[TMF-IG1252]</dt>
+      <dd>
+<span class="refAuthor">TM Forum</span>, <span class="refTitle">"Autonomous Network Levels Evaluation Methodology (IG1252)"</span>. </dd>
+<dd class="break"></dd>
+<dt id="TS28100">[TS28100]</dt>
+    <dd>
+<span class="refAuthor">3GPP</span>, <span class="refTitle">"Management and orchestration; Levels of autonomous network (TS 28.100)"</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="implementation">
+<section id="appendix-A">
+      <h2 id="name-ani-gamut-a-reference-imple">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-ani-gamut-a-reference-imple" class="section-name selfRef">ANI-Gamut: A Reference Implementation</a>
+      </h2>
+<p id="appendix-A-1">ANI-Gamut <span>[<a href="#ANIGAMUT" class="cite xref">ANIGAMUT</a>]</span> <span>[<a href="#ANIGAMUT-EXT" class="cite xref">ANIGAMUT-EXT</a>]</span> is an open-source implementation
+of the framework <span>[<a href="#ANIGAMUT-CODE" class="cite xref">ANIGAMUT-CODE</a>]</span> (release tag cnsm2026). It provides:<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A-2.1">
+          <p id="appendix-A-2.1.1">a harness with per-level ANI adapters for A0, A1 and A3-T, A1 with an
+optional blocklist as an ablation, A2 and A3-R being defined but not
+yet implemented;<a href="#appendix-A-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-A-2.2">
+          <p id="appendix-A-2.2.1">a multi-service SRv6 substrate on Containerlab with Linux and FRR
+nodes, using a NEXT-CSID data plane, with firewall, underlay routing,
+floating-IP and addressing services coexisting on the same nodes;<a href="#appendix-A-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-A-2.3">
+          <p id="appendix-A-2.3.1">a layered, seeded scenario generator with co-emitted invariants;<a href="#appendix-A-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-A-2.4">
+          <p id="appendix-A-2.4.1">substrate-level fault injection and out-of-band observation.<a href="#appendix-A-2.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="appendix-A-3">It builds on the benchmarking playground described in <span>[<a href="#PLAYGROUND" class="cite xref">PLAYGROUND</a>]</span>.
+A project page is available at <a href="https://netgroup.github.io/ani-gamut/">https://netgroup.github.io/ani-gamut/</a>.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-B">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-B-1">The framework originates from work carried out with Lorenzo Bracciale,
+Pierpaolo Loreti and Andrea Mayer. The authors thank Frank Loh and
+Papasega Wade for discussions.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-C">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Stefano Salsano (<span class="role">editor</span>)</span></div>
+<div dir="auto" class="left"><span class="org">University of Rome Tor Vergata / CNIT</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:stefano.salsano@uniroma2.it" class="email">stefano.salsano@uniroma2.it</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Wim Henderickx</span></div>
+<div dir="auto" class="left"><span class="org">Nokia</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:wim.henderickx@nokia.com" class="email">wim.henderickx@nokia.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Andreas Kassler</span></div>
+<div dir="auto" class="left"><span class="org">Deggendorf Institute of Technology</span></div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
