@@ -9,7 +9,7 @@ number:
 date:
 consensus: false
 v: 3
-workgroup: Network Management Research Group
+workgroup: "Network Management"
 keyword:
  - AI agents
  - network management
@@ -17,12 +17,12 @@ keyword:
  - brownfield
  - agent-network interface
 venue:
-  group: NMRG
-  type: Research Group
-  mail: nmrg@irtf.org
-  arch: https://mailarchive.ietf.org/arch/browse/nmrg/
-  github: netgroup/draft-nmaa-benchmarking-framework
-  latest: https://netgroup.github.io/draft-nmaa-benchmarking-framework/draft-salsano-nmrg-nmaa-benchmarking-framework.html
+  group: "Network Management"
+  type: "Research Group"
+  mail: "nmrg@irtf.org"
+  arch: "https://mailarchive.ietf.org/arch/browse/nmrg"
+  github: "netgroup/draft-nmaa-benchmarking-framework"
+  latest: "https://netgroup.github.io/draft-nmaa-benchmarking-framework/draft-salsano-nmrg-nmaa-benchmarking-framework.html"
 
 author:
  -
