@@ -32,11 +32,11 @@ author:
     email: stefano.salsano@uniroma2.it
  -
     fullname: Wim Henderickx
-    organization: Nokia
+    organization: Nokia (to be confirmed)
     email: wim.henderickx@nokia.com
  -
     fullname: Andreas Kassler
-    organization: Deggendorf Institute of Technology
+    organization: Deggendorf Institute of Technology (to be confirmed)
 
 normative:
 
@@ -64,7 +64,7 @@ informative:
       - name: Stefano Salsano
     date: false
     seriesinfo:
-      Internet-Draft: draft-salsano-bmwg-nmaa-benchmarking-methodology-latest
+      Internet-Draft: draft-salsano-bpm-nmaa-benchmarking-methodology-latest
   ANIGAMUT:
     title: "ANI-Gamut: Benchmarking Agent Reliability across the Gamut of Agent-Network Interface Abstractions"
     author:
